@@ -1,8 +1,184 @@
-/*
+.abacus-stats {
+	padding: 16px;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.abacus-today-summary {
+	margin-bottom: 24px;
+}
 
-If your plugin does not need CSS, delete this file.
+.abacus-today-summary h3 {
+	margin: 0 0 12px 0;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
 
-*/
+.abacus-today-grid {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.abacus-stat-card {
+	flex: 1;
+	padding: 12px;
+	border-radius: 8px;
+	background: var(--background-secondary);
+	text-align: center;
+}
+
+.abacus-stat-value {
+	font-size: 1.5em;
+	font-weight: 700;
+	color: var(--text-normal);
+}
+
+.abacus-stat-label {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+/* Progress bar */
+.abacus-progress-container {
+	margin-top: 8px;
+}
+
+.abacus-progress-label {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin-bottom: 4px;
+}
+
+.abacus-progress-bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--background-modifier-border);
+	overflow: hidden;
+}
+
+.abacus-progress-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: var(--interactive-accent);
+	transition: width 0.3s ease;
+}
+
+.abacus-progress-complete {
+	background: var(--color-green);
+}
+
+/* History table */
+.abacus-history {
+	margin-bottom: 24px;
+}
+
+.abacus-history h3 {
+	margin: 0 0 12px 0;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
+
+.abacus-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85em;
+}
+
+.abacus-table th {
+	text-align: left;
+	padding: 6px 8px;
+	border-bottom: 2px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-weight: 600;
+}
+
+.abacus-table td {
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.abacus-positive {
+	color: var(--color-green);
+}
+
+.abacus-negative {
+	color: var(--color-red);
+}
+
+.abacus-goal-met {
+	color: var(--color-green);
+	font-weight: 600;
+}
+
+.abacus-empty {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* Bar chart */
+.abacus-chart {
+	margin-bottom: 24px;
+}
+
+.abacus-chart h3 {
+	margin: 0 0 12px 0;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
+
+.abacus-bar-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 2px;
+	height: 120px;
+	position: relative;
+	padding-bottom: 20px;
+}
+
+.abacus-bar-col {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	height: 100%;
+}
+
+.abacus-bar-area {
+	flex: 1;
+	width: 100%;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+}
+
+.abacus-bar {
+	width: 80%;
+	min-height: 2px;
+	border-radius: 2px 2px 0 0;
+	background: var(--interactive-accent);
+	transition: height 0.3s ease;
+	cursor: default;
+}
+
+.abacus-bar-negative {
+	background: var(--color-red);
+}
+
+.abacus-bar-goal-met {
+	background: var(--color-green);
+}
+
+.abacus-bar-label {
+	font-size: 0.65em;
+	color: var(--text-muted);
+	margin-top: 2px;
+}
+
+.abacus-goal-line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 1px;
+	border-top: 1px dashed var(--text-muted);
+	pointer-events: none;
+}

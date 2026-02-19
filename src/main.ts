@@ -1,99 +1,164 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { Plugin, WorkspaceLeaf } from "obsidian";
+import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS } from "./types";
+import { AbacusSettingTab } from "./settings";
+import { AbacusStatsView, VIEW_TYPE_ABACUS_STATS } from "./stats-view";
+import { EditorView, ViewUpdate } from "@codemirror/view";
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
-	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
-	}
-
-	onunload() {
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+function getToday(): string {
+	const d = new Date();
+	return d.toISOString().slice(0, 10);
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+function countWords(text: string): number {
+	const trimmed = text.trim();
+	if (trimmed.length === 0) return 0;
+	return trimmed.split(/\s+/).length;
+}
+
+export default class AbacusPlugin extends Plugin {
+	data: AbacusData;
+	statusBarEl: HTMLElement;
+
+	async onload() {
+		await this.loadAbacusData();
+
+		this.registerView(VIEW_TYPE_ABACUS_STATS, (leaf) => new AbacusStatsView(leaf, this));
+
+		this.statusBarEl = this.addStatusBarItem();
+		this.updateStatusBar();
+
+		this.addRibbonIcon("bar-chart-2", "Abacus: View Stats", () => {
+			this.activateStatsView();
+		});
+
+		this.addCommand({
+			id: "open-stats",
+			name: "View daily word stats",
+			callback: () => {
+				this.activateStatsView();
+			},
+		});
+
+		this.addCommand({
+			id: "reset-today",
+			name: "Reset today's word count",
+			callback: async () => {
+				const today = getToday();
+				delete this.data.dailyRecords[today];
+				await this.saveAbacusData();
+				this.updateStatusBar();
+				this.refreshStatsView();
+			},
+		});
+
+		this.addSettingTab(new AbacusSettingTab(this.app, this));
+
+		this.registerEditorExtension(
+			EditorView.updateListener.of((update: ViewUpdate) => {
+				if (!update.docChanged) return;
+				this.handleDocChange(update);
+			})
+		);
+
+		// Refresh status bar every minute to handle day rollover
+		this.registerInterval(
+			window.setInterval(() => this.updateStatusBar(), 60 * 1000)
+		);
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+	onunload() {}
+
+	handleDocChange(update: ViewUpdate) {
+		let added = 0;
+		let deleted = 0;
+
+		update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+			const removedText = update.startState.sliceDoc(fromA, toA);
+			const insertedText = inserted.toString();
+			deleted += countWords(removedText);
+			added += countWords(insertedText);
+		});
+
+		if (added === 0 && deleted === 0) return;
+
+		const today = getToday();
+		const record = this.getTodayRecord(today);
+		record.wordsAdded += added;
+		record.wordsDeleted += deleted;
+		record.netWords = record.wordsAdded - record.wordsDeleted;
+
+		this.data.dailyRecords[today] = record;
+		this.saveAbacusData();
+		this.updateStatusBar();
+		this.refreshStatsView();
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	getTodayRecord(today: string): DailyRecord {
+		return (
+			this.data.dailyRecords[today] ?? {
+				date: today,
+				wordsAdded: 0,
+				wordsDeleted: 0,
+				netWords: 0,
+			}
+		);
+	}
+
+	updateStatusBar() {
+		const today = getToday();
+		const record = this.getTodayRecord(today);
+		const goal = this.data.settings.dailyGoal;
+		const net = record.netWords;
+
+		if (goal > 0) {
+			const pct = Math.min(100, Math.round((net / goal) * 100));
+			const icon = net >= goal ? "\u2713" : "\u270f\ufe0f";
+			this.statusBarEl.setText(`${icon} ${net} / ${goal} words (${pct}%)`);
+		} else {
+			this.statusBarEl.setText(`\u270f\ufe0f ${net} words today`);
+		}
+	}
+
+	async activateStatsView() {
+		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_ABACUS_STATS);
+		if (existing.length > 0) {
+			this.app.workspace.revealLeaf(existing[0] as WorkspaceLeaf);
+			return;
+		}
+		const leaf = this.app.workspace.getRightLeaf(false);
+		if (leaf) {
+			await leaf.setViewState({
+				type: VIEW_TYPE_ABACUS_STATS,
+				active: true,
+			});
+			this.app.workspace.revealLeaf(leaf);
+		}
+	}
+
+	refreshStatsView() {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_ABACUS_STATS);
+		for (const leaf of leaves) {
+			const view = leaf.view;
+			if (view instanceof AbacusStatsView) {
+				view.refresh();
+			}
+		}
+	}
+
+	get settings(): AbacusSettings {
+		return this.data.settings;
+	}
+
+	async loadAbacusData() {
+		const saved = await this.loadData();
+		this.data = Object.assign({}, DEFAULT_DATA, saved);
+		this.data.settings = Object.assign({}, DEFAULT_SETTINGS, this.data.settings);
+		if (!this.data.dailyRecords) {
+			this.data.dailyRecords = {};
+		}
+	}
+
+	async saveAbacusData() {
+		await this.saveData(this.data);
 	}
 }
