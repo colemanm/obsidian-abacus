@@ -7,9 +7,12 @@
 }
 
 .abacus-today-summary h3 {
-	margin: 0 0 12px 0;
-	font-size: 1.1em;
-	color: var(--text-normal);
+	margin: 0 0 8px 0;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 }
 
 .abacus-today-grid {
@@ -67,34 +70,78 @@
 	background: var(--color-green);
 }
 
-/* History table */
+/* History list — native Obsidian properties style */
 .abacus-history {
 	margin-bottom: 24px;
 }
 
 .abacus-history h3 {
-	margin: 0 0 12px 0;
-	font-size: 1.1em;
-	color: var(--text-normal);
+	margin: 0 0 8px 0;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 }
 
 .abacus-table {
 	width: 100%;
-	border-collapse: collapse;
-	font-size: 0.85em;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: var(--font-ui-small);
 }
 
 .abacus-table th {
-	text-align: left;
-	padding: 6px 8px;
-	border-bottom: 2px solid var(--background-modifier-border);
-	color: var(--text-muted);
-	font-weight: 600;
+	display: none;
+}
+
+.abacus-table tr {
+	border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+
+.abacus-table tr:last-child {
+	border-bottom: none;
 }
 
 .abacus-table td {
-	padding: 6px 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 10px 8px;
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border-hover);
+	color: var(--text-normal);
+	vertical-align: middle;
+}
+
+.abacus-table tr:last-child td {
+	border-bottom: none;
+}
+
+/* Date column — acts as the property label */
+.abacus-table td:first-child {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	white-space: nowrap;
+	width: 30%;
+}
+
+/* Net words column — primary value */
+.abacus-table td:nth-child(2) {
+	font-weight: var(--font-semibold);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Added/deleted columns — secondary values */
+.abacus-table td:nth-child(3),
+.abacus-table td:nth-child(4) {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Goal column */
+.abacus-table td:nth-child(5) {
+	font-variant-numeric: tabular-nums;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
 }
 
 .abacus-positive {
@@ -106,13 +153,13 @@
 }
 
 .abacus-goal-met {
-	color: var(--color-green);
-	font-weight: 600;
+	color: var(--color-green) !important;
+	font-weight: var(--font-semibold);
 }
 
 .abacus-empty {
-	color: var(--text-muted);
-	font-style: italic;
+	color: var(--text-faint);
+	padding: 16px 8px;
 }
 
 /* Bar chart */
@@ -121,9 +168,12 @@
 }
 
 .abacus-chart h3 {
-	margin: 0 0 12px 0;
-	font-size: 1.1em;
-	color: var(--text-normal);
+	margin: 0 0 8px 0;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 }
 
 .abacus-bar-chart {
