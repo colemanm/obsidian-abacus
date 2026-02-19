@@ -96,23 +96,16 @@
 }
 
 .abacus-table tr {
-	border-bottom: 1px solid var(--background-modifier-border-hover);
-}
-
-.abacus-table tr:last-child {
 	border-bottom: none;
 }
 
 .abacus-table td {
 	padding: 10px 8px;
 	border: none;
-	border-bottom: 1px solid var(--background-modifier-border-hover);
+	border-bottom: 1px solid var(--background-modifier-border);
 	color: var(--text-normal);
 	vertical-align: middle;
-}
-
-.abacus-table tr:last-child td {
-	border-bottom: none;
+	text-align: left;
 }
 
 /* Date column — acts as the property label */
