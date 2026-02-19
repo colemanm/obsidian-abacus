@@ -5,8 +5,7 @@ import { AbacusStatsView, VIEW_TYPE_ABACUS_STATS } from "./stats-view";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 
 function getToday(): string {
-	const d = new Date();
-	return d.toISOString().slice(0, 10);
+	return new Date().toISOString().slice(0, 10);
 }
 
 function countWords(text: string): number {
@@ -15,12 +14,20 @@ function countWords(text: string): number {
 	return trimmed.split(/\s+/).length;
 }
 
+function daysAgo(days: number): string {
+	const d = new Date();
+	d.setDate(d.getDate() - days);
+	return d.toISOString().slice(0, 10);
+}
+
 export default class AbacusPlugin extends Plugin {
 	data: AbacusData;
 	statusBarEl: HTMLElement;
+	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	async onload() {
 		await this.loadAbacusData();
+		this.compact();
 
 		this.registerView(VIEW_TYPE_ABACUS_STATS, (leaf) => new AbacusStatsView(leaf, this));
 
@@ -44,7 +51,8 @@ export default class AbacusPlugin extends Plugin {
 			name: "Reset today's word count",
 			callback: async () => {
 				const today = getToday();
-				delete this.data.dailyRecords[today];
+				this.data.increments = this.data.increments.filter((i) => i.date !== today);
+				delete this.data.compacted[today];
 				await this.saveAbacusData();
 				this.updateStatusBar();
 				this.refreshStatsView();
@@ -60,19 +68,23 @@ export default class AbacusPlugin extends Plugin {
 			})
 		);
 
-		// Refresh status bar every minute to handle day rollover
 		this.registerInterval(
 			window.setInterval(() => this.updateStatusBar(), 60 * 1000)
 		);
 	}
 
-	onunload() {}
+	onunload() {
+		if (this.saveTimeout) {
+			clearTimeout(this.saveTimeout);
+			this.saveAbacusData();
+		}
+	}
 
 	handleDocChange(update: ViewUpdate) {
 		let added = 0;
 		let deleted = 0;
 
-		update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+		update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
 			const removedText = update.startState.sliceDoc(fromA, toA);
 			const insertedText = inserted.toString();
 			deleted += countWords(removedText);
@@ -81,21 +93,53 @@ export default class AbacusPlugin extends Plugin {
 
 		if (added === 0 && deleted === 0) return;
 
-		const today = getToday();
-		const record = this.getTodayRecord(today);
-		record.wordsAdded += added;
-		record.wordsDeleted += deleted;
-		record.netWords = record.wordsAdded - record.wordsDeleted;
+		this.data.increments.push({
+			ts: Date.now(),
+			date: getToday(),
+			added,
+			deleted,
+		});
 
-		this.data.dailyRecords[today] = record;
-		this.saveAbacusData();
+		this.debounceSave();
 		this.updateStatusBar();
 		this.refreshStatsView();
 	}
 
-	getTodayRecord(today: string): DailyRecord {
+	/**
+	 * Aggregate increments + compacted summaries into DailyRecords.
+	 */
+	getDailyRecords(): Record<string, DailyRecord> {
+		const records: Record<string, DailyRecord> = {};
+
+		// Start with compacted data
+		for (const [date, record] of Object.entries(this.data.compacted)) {
+			records[date] = { ...record };
+		}
+
+		// Layer increments on top
+		for (const inc of this.data.increments) {
+			const existing = records[inc.date];
+			if (existing) {
+				existing.wordsAdded += inc.added;
+				existing.wordsDeleted += inc.deleted;
+				existing.netWords = existing.wordsAdded - existing.wordsDeleted;
+			} else {
+				records[inc.date] = {
+					date: inc.date,
+					wordsAdded: inc.added,
+					wordsDeleted: inc.deleted,
+					netWords: inc.added - inc.deleted,
+				};
+			}
+		}
+
+		return records;
+	}
+
+	getTodayRecord(): DailyRecord {
+		const today = getToday();
 		return (
-			this.data.dailyRecords[today] ?? {
+			this.getDailyRecords()[today] ?? {
 				date: today,
 				wordsAdded: 0,
 				wordsDeleted: 0,
@@ -104,9 +148,40 @@ export default class AbacusPlugin extends Plugin {
 		);
 	}
 
+	/**
+	 * Compact increments older than compactAfterDays into daily summaries.
+	 * Runs automatically on plugin load.
+	 */
+	compact() {
+		const cutoff = daysAgo(this.data.settings.compactAfterDays);
+		const toCompact = this.data.increments.filter((i) => i.date < cutoff);
+
+		if (toCompact.length === 0) return;
+
+		// Aggregate old increments into compacted summaries
+		for (const inc of toCompact) {
+			const existing = this.data.compacted[inc.date];
+			if (existing) {
+				existing.wordsAdded += inc.added;
+				existing.wordsDeleted += inc.deleted;
+				existing.netWords = existing.wordsAdded - existing.wordsDeleted;
+			} else {
+				this.data.compacted[inc.date] = {
+					date: inc.date,
+					wordsAdded: inc.added,
+					wordsDeleted: inc.deleted,
+					netWords: inc.added - inc.deleted,
+				};
+			}
+		}
+
+		// Remove compacted increments
+		this.data.increments = this.data.increments.filter((i) => i.date >= cutoff);
+		this.saveAbacusData();
+	}
+
 	updateStatusBar() {
-		const today = getToday();
-		const record = this.getTodayRecord(today);
+		const record = this.getTodayRecord();
 		const goal = this.data.settings.dailyGoal;
 		const net = record.netWords;
 
@@ -153,9 +228,32 @@ export default class AbacusPlugin extends Plugin {
 		const saved = await this.loadData();
 		this.data = Object.assign({}, DEFAULT_DATA, saved);
 		this.data.settings = Object.assign({}, DEFAULT_SETTINGS, this.data.settings);
-		if (!this.data.dailyRecords) {
-			this.data.dailyRecords = {};
+		if (!this.data.increments) this.data.increments = [];
+		if (!this.data.compacted) this.data.compacted = {};
+
+		// Migrate from old dailyRecords format
+		if (saved && "dailyRecords" in saved) {
+			const old = saved as { dailyRecords?: Record<string, DailyRecord> };
+			if (old.dailyRecords) {
+				for (const [date, record] of Object.entries(old.dailyRecords)) {
+					if (!this.data.compacted[date]) {
+						this.data.compacted[date] = { ...record };
+					}
+				}
+			}
 		}
+	}
+
+	/**
+	 * Debounce saves to avoid writing on every keystroke.
+	 * Flushes after 2 seconds of inactivity.
+	 */
+	private debounceSave() {
+		if (this.saveTimeout) clearTimeout(this.saveTimeout);
+		this.saveTimeout = setTimeout(() => {
+			this.saveTimeout = null;
+			this.saveAbacusData();
+		}, 2000);
 	}
 
 	async saveAbacusData() {

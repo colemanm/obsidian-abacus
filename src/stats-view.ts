@@ -36,14 +36,15 @@ export class AbacusStatsView extends ItemView {
 		container.empty();
 
 		const wrapper = container.createDiv({ cls: "abacus-stats" });
+		const records = this.getDailyRecords();
+		const goal = this.plugin.data.settings.dailyGoal;
 
 		// Today summary
 		const today = new Date().toISOString().slice(0, 10);
-		const todayRecord = this.plugin.data.dailyRecords[today];
+		const todayRecord = records[today];
 		const net = todayRecord?.netWords ?? 0;
 		const added = todayRecord?.wordsAdded ?? 0;
 		const deleted = todayRecord?.wordsDeleted ?? 0;
-		const goal = this.plugin.data.settings.dailyGoal;
 
 		const summaryEl = wrapper.createDiv({ cls: "abacus-today-summary" });
 		summaryEl.createEl("h3", { text: "Today" });
@@ -69,9 +70,9 @@ export class AbacusStatsView extends ItemView {
 		const historyEl = wrapper.createDiv({ cls: "abacus-history" });
 		historyEl.createEl("h3", { text: "History" });
 
-		const records = this.getSortedRecords();
+		const sorted = this.getSortedRecords(records);
 
-		if (records.length === 0) {
+		if (sorted.length === 0) {
 			historyEl.createEl("p", { text: "No word count data yet. Start typing!", cls: "abacus-empty" });
 			return;
 		}
@@ -88,7 +89,7 @@ export class AbacusStatsView extends ItemView {
 		}
 
 		const tbody = table.createEl("tbody");
-		for (const record of records) {
+		for (const record of sorted) {
 			const row = tbody.createEl("tr");
 			row.createEl("td", { text: this.formatDate(record.date) });
 			row.createEl("td", { text: String(record.netWords), cls: record.netWords >= 0 ? "abacus-positive" : "abacus-negative" });
@@ -102,11 +103,15 @@ export class AbacusStatsView extends ItemView {
 		}
 
 		// Bar chart visualization
-		if (records.length > 1) {
+		if (sorted.length > 1) {
 			const chartEl = wrapper.createDiv({ cls: "abacus-chart" });
 			chartEl.createEl("h3", { text: "Last 30 Days" });
-			this.renderBarChart(chartEl, records.slice(0, 30));
+			this.renderBarChart(chartEl, sorted.slice(0, 30));
 		}
+	}
+
+	private getDailyRecords(): Record<string, DailyRecord> {
+		return this.plugin.getDailyRecords();
 	}
 
 	private createStatCard(parent: HTMLElement, label: string, value: string) {
@@ -115,14 +120,14 @@ export class AbacusStatsView extends ItemView {
 		card.createDiv({ cls: "abacus-stat-label", text: label });
 	}
 
-	private getSortedRecords(): DailyRecord[] {
-		const records = Object.values(this.plugin.data.dailyRecords);
-		records.sort((a, b) => b.date.localeCompare(a.date));
-		return records;
+	private getSortedRecords(records: Record<string, DailyRecord>): DailyRecord[] {
+		const list = Object.values(records);
+		list.sort((a, b) => b.date.localeCompare(a.date));
+		return list;
 	}
 
 	private formatDate(dateStr: string): string {
-		const [year, month, day] = dateStr.split("-");
+		const [_year, month, day] = dateStr.split("-");
 		const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 		return `${months[parseInt(month!, 10) - 1]} ${parseInt(day!, 10)}`;
 	}

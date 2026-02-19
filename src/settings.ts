@@ -33,12 +33,29 @@ export class AbacusSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Compaction threshold")
+			.setDesc("Days of granular increment data to keep before compacting into daily summaries.")
+			.addText((text) =>
+				text
+					.setPlaceholder("30")
+					.setValue(String(this.plugin.data.settings.compactAfterDays))
+					.onChange(async (value) => {
+						const num = parseInt(value, 10);
+						if (!isNaN(num) && num >= 1) {
+							this.plugin.data.settings.compactAfterDays = num;
+							await this.plugin.saveAbacusData();
+						}
+					})
+			);
+
+		new Setting(containerEl)
 			.setName("Reset today's count")
 			.setDesc("Clear today's word count back to zero.")
 			.addButton((button) =>
 				button.setButtonText("Reset").onClick(async () => {
 					const today = new Date().toISOString().slice(0, 10);
-					delete this.plugin.data.dailyRecords[today];
+					this.plugin.data.increments = this.plugin.data.increments.filter((i) => i.date !== today);
+					delete this.plugin.data.compacted[today];
 					await this.plugin.saveAbacusData();
 					this.plugin.updateStatusBar();
 					this.plugin.refreshStatsView();
