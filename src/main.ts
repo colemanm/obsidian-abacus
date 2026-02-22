@@ -81,17 +81,14 @@ export default class AbacusPlugin extends Plugin {
 	}
 
 	handleDocChange(update: ViewUpdate) {
-		let added = 0;
-		let deleted = 0;
+		const wordsBefore = countWords(update.startState.doc.toString());
+		const wordsAfter = countWords(update.state.doc.toString());
+		const delta = wordsAfter - wordsBefore;
 
-		update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
-			const removedText = update.startState.sliceDoc(fromA, toA);
-			const insertedText = inserted.toString();
-			deleted += countWords(removedText);
-			added += countWords(insertedText);
-		});
+		if (delta === 0) return;
 
-		if (added === 0 && deleted === 0) return;
+		const added = delta > 0 ? delta : 0;
+		const deleted = delta < 0 ? -delta : 0;
 
 		this.data.increments.push({
 			ts: Date.now(),
