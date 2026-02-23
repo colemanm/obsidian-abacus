@@ -37,6 +37,8 @@ export default class AbacusPlugin extends Plugin {
 	statusBarEl: HTMLElement;
 	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 	private refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+	private pendingAdded = 0;
+	private pendingDeleted = 0;
 
 	async onload() {
 		await this.loadAbacusData();
@@ -87,6 +89,7 @@ export default class AbacusPlugin extends Plugin {
 	}
 
 	onunload() {
+		this.flushPending();
 		if (this.saveTimeout) {
 			clearTimeout(this.saveTimeout);
 			this.saveAbacusData();
@@ -107,19 +110,30 @@ export default class AbacusPlugin extends Plugin {
 
 		if (delta === 0) return;
 
-		const added = delta > 0 ? delta : 0;
-		const deleted = delta < 0 ? -delta : 0;
-
-		this.data.increments.push({
-			ts: Date.now(),
-			date: getToday(),
-			added,
-			deleted,
-		});
+		if (delta > 0) {
+			this.pendingAdded += delta;
+		} else {
+			this.pendingDeleted += -delta;
+		}
 
 		this.debounceSave();
 		this.updateStatusBar();
 		this.debounceRefreshStatsView();
+	}
+
+	/** Flush accumulated pending words into a single increment. */
+	private flushPending() {
+		if (this.pendingAdded === 0 && this.pendingDeleted === 0) return;
+
+		this.data.increments.push({
+			ts: Date.now(),
+			date: getToday(),
+			added: this.pendingAdded,
+			deleted: this.pendingDeleted,
+		});
+
+		this.pendingAdded = 0;
+		this.pendingDeleted = 0;
 	}
 
 	/**
@@ -155,22 +169,30 @@ export default class AbacusPlugin extends Plugin {
 
 	getTodayRecord(): DailyRecord {
 		const today = getToday();
-		return (
-			this.getDailyRecords()[today] ?? {
-				date: today,
-				wordsAdded: 0,
-				wordsDeleted: 0,
-				netWords: 0,
-			}
-		);
+		const record = this.getDailyRecords()[today] ?? {
+			date: today,
+			wordsAdded: 0,
+			wordsDeleted: 0,
+			netWords: 0,
+		};
+
+		// Include unflushed pending words
+		if (this.pendingAdded > 0 || this.pendingDeleted > 0) {
+			record.wordsAdded += this.pendingAdded;
+			record.wordsDeleted += this.pendingDeleted;
+			record.netWords = record.wordsAdded - record.wordsDeleted;
+		}
+
+		return record;
 	}
 
 	/**
-	 * Compact increments older than compactAfterDays into daily summaries.
-	 * Runs automatically on plugin load.
+	 * Compact increments before the cutoff date into daily summaries.
+	 * When called without arguments, uses the compactAfterDays threshold.
+	 * When called with a cutoff, compacts everything before that date.
 	 */
-	compact() {
-		const cutoff = daysAgo(this.data.settings.compactAfterDays);
+	compact(cutoff?: string) {
+		if (!cutoff) cutoff = daysAgo(this.data.settings.compactAfterDays);
 		const toCompact = this.data.increments.filter((i) => i.date < cutoff);
 
 		if (toCompact.length === 0) return;
@@ -193,7 +215,7 @@ export default class AbacusPlugin extends Plugin {
 		}
 
 		// Remove compacted increments
-		this.data.increments = this.data.increments.filter((i) => i.date >= cutoff);
+		this.data.increments = this.data.increments.filter((i) => i.date >= cutoff!);
 		this.saveAbacusData();
 	}
 
@@ -306,6 +328,7 @@ export default class AbacusPlugin extends Plugin {
 		if (this.saveTimeout) clearTimeout(this.saveTimeout);
 		this.saveTimeout = setTimeout(() => {
 			this.saveTimeout = null;
+			this.flushPending();
 			this.saveAbacusData();
 		}, 2000);
 	}
