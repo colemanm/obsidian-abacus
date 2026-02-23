@@ -76,6 +76,43 @@
 	background: var(--color-green);
 }
 
+/* Period summaries (week/month) */
+.abacus-period-summary {
+	margin-bottom: 20px;
+}
+
+.abacus-period-row {
+	display: flex;
+	gap: 12px;
+}
+
+.abacus-period-card {
+	flex: 1;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--background-secondary);
+}
+
+.abacus-period-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 2px;
+}
+
+.abacus-period-value {
+	font-size: 1.2em;
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.abacus-period-avg {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-top: 2px;
+}
+
 /* History list — native Obsidian properties style */
 .abacus-history {
 	margin-bottom: 24px;

@@ -70,6 +70,9 @@ export class AbacusStatsView extends ItemView {
 			progressEl.createEl("div", { cls: "abacus-streak-label", text: streakText });
 		}
 
+		// Weekly & monthly summaries
+		this.renderPeriodSummaries(wrapper, records);
+
 		// History table
 		const historyEl = wrapper.createDiv({ cls: "abacus-history" });
 		historyEl.createEl("h3", { text: "History" });
@@ -112,6 +115,54 @@ export class AbacusStatsView extends ItemView {
 			chartEl.createEl("h3", { text: "Last 30 Days" });
 			this.renderBarChart(chartEl, sorted.slice(0, 30));
 		}
+	}
+
+	private renderPeriodSummaries(wrapper: HTMLElement, records: Record<string, DailyRecord>) {
+		const now = new Date();
+
+		// This week: Monday through today
+		const dayOfWeek = now.getDay();
+		const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+		const monday = new Date(now);
+		monday.setDate(now.getDate() - mondayOffset);
+		const weekDays = mondayOffset + 1;
+
+		// This month: 1st through today
+		const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		const monthDays = now.getDate();
+
+		const weekStats = this.sumPeriod(records, monday, now);
+		const monthStats = this.sumPeriod(records, firstOfMonth, now);
+
+		const section = wrapper.createDiv({ cls: "abacus-period-summary" });
+
+		const row = section.createDiv({ cls: "abacus-period-row" });
+
+		const weekCard = row.createDiv({ cls: "abacus-period-card" });
+		weekCard.createEl("div", { cls: "abacus-period-label", text: "This week" });
+		weekCard.createEl("div", { cls: "abacus-period-value", text: String(weekStats.net) });
+		weekCard.createEl("div", { cls: "abacus-period-avg", text: `${Math.round(weekStats.net / weekDays)} avg/day` });
+
+		const monthCard = row.createDiv({ cls: "abacus-period-card" });
+		monthCard.createEl("div", { cls: "abacus-period-label", text: "This month" });
+		monthCard.createEl("div", { cls: "abacus-period-value", text: String(monthStats.net) });
+		monthCard.createEl("div", { cls: "abacus-period-avg", text: `${Math.round(monthStats.net / monthDays)} avg/day` });
+	}
+
+	private sumPeriod(records: Record<string, DailyRecord>, from: Date, to: Date): { net: number; added: number; deleted: number } {
+		let net = 0, added = 0, deleted = 0;
+		const cursor = new Date(from);
+		while (cursor <= to) {
+			const key = localDateStr(cursor);
+			const record = records[key];
+			if (record) {
+				net += record.netWords;
+				added += record.wordsAdded;
+				deleted += record.wordsDeleted;
+			}
+			cursor.setDate(cursor.getDate() + 1);
+		}
+		return { net, added, deleted };
 	}
 
 	private getDailyRecords(): Record<string, DailyRecord> {
