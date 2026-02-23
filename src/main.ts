@@ -24,6 +24,7 @@ export default class AbacusPlugin extends Plugin {
 	data: AbacusData;
 	statusBarEl: HTMLElement;
 	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	private refreshTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	async onload() {
 		await this.loadAbacusData();
@@ -78,6 +79,9 @@ export default class AbacusPlugin extends Plugin {
 			clearTimeout(this.saveTimeout);
 			this.saveAbacusData();
 		}
+		if (this.refreshTimeout) {
+			clearTimeout(this.refreshTimeout);
+		}
 	}
 
 	handleDocChange(update: ViewUpdate) {
@@ -99,7 +103,7 @@ export default class AbacusPlugin extends Plugin {
 
 		this.debounceSave();
 		this.updateStatusBar();
-		this.refreshStatsView();
+		this.debounceRefreshStatsView();
 	}
 
 	/**
@@ -241,10 +245,14 @@ export default class AbacusPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * Debounce saves to avoid writing on every keystroke.
-	 * Flushes after 2 seconds of inactivity.
-	 */
+	private debounceRefreshStatsView() {
+		if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+		this.refreshTimeout = setTimeout(() => {
+			this.refreshTimeout = null;
+			this.refreshStatsView();
+		}, 2000);
+	}
+
 	private debounceSave() {
 		if (this.saveTimeout) clearTimeout(this.saveTimeout);
 		this.saveTimeout = setTimeout(() => {
