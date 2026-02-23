@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import AbacusPlugin from "./main";
-import { DailyRecord } from "./types";
+import { DailyRecord, localDateStr } from "./types";
 
 export const VIEW_TYPE_ABACUS_STATS = "abacus-stats-view";
 
@@ -40,7 +40,7 @@ export class AbacusStatsView extends ItemView {
 		const goal = this.plugin.data.settings.dailyGoal;
 
 		// Today summary
-		const today = new Date().toISOString().slice(0, 10);
+		const today = localDateStr(new Date());
 		const todayRecord = records[today];
 		const net = todayRecord?.netWords ?? 0;
 		const added = todayRecord?.wordsAdded ?? 0;

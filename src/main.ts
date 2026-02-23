@@ -1,11 +1,11 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
-import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS } from "./types";
+import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS, localDateStr } from "./types";
 import { AbacusSettingTab } from "./settings";
 import { AbacusStatsView, VIEW_TYPE_ABACUS_STATS } from "./stats-view";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 
 function getToday(): string {
-	return new Date().toISOString().slice(0, 10);
+	return localDateStr(new Date());
 }
 
 function countWords(text: string): number {
@@ -17,7 +17,7 @@ function countWords(text: string): number {
 function daysAgo(days: number): string {
 	const d = new Date();
 	d.setDate(d.getDate() - days);
-	return d.toISOString().slice(0, 10);
+	return localDateStr(d);
 }
 
 export default class AbacusPlugin extends Plugin {

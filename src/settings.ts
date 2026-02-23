@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import AbacusPlugin from "./main";
+import { localDateStr } from "./types";
 
 export class AbacusSettingTab extends PluginSettingTab {
 	plugin: AbacusPlugin;
@@ -53,7 +54,7 @@ export class AbacusSettingTab extends PluginSettingTab {
 			.setDesc("Clear today's word count back to zero.")
 			.addButton((button) =>
 				button.setButtonText("Reset").onClick(async () => {
-					const today = new Date().toISOString().slice(0, 10);
+					const today = localDateStr(new Date());
 					this.plugin.data.increments = this.plugin.data.increments.filter((i) => i.date !== today);
 					delete this.plugin.data.compacted[today];
 					await this.plugin.saveAbacusData();
