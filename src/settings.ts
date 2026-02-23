@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import AbacusPlugin from "./main";
 import { localDateStr } from "./types";
 
@@ -47,6 +47,15 @@ export class AbacusSettingTab extends PluginSettingTab {
 							await this.plugin.saveAbacusData();
 						}
 					})
+			)
+			.addButton((button) =>
+				button.setButtonText("Compact now").onClick(() => {
+					const before = this.plugin.data.increments.length;
+					this.plugin.compact(localDateStr(new Date()));
+					const after = this.plugin.data.increments.length;
+					const compacted = before - after;
+					new Notice(`Abacus: compacted ${compacted} increment${compacted === 1 ? "" : "s"}`);
+				})
 			);
 
 		new Setting(containerEl)
