@@ -258,6 +258,9 @@ export default class AbacusPlugin extends Plugin {
 					}
 				}
 			}
+			// Remove stale key and persist
+			delete (this.data as unknown as Record<string, unknown>)["dailyRecords"];
+			await this.saveAbacusData();
 		}
 	}
 

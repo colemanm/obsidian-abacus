@@ -127,9 +127,11 @@ export class AbacusStatsView extends ItemView {
 	}
 
 	private formatDate(dateStr: string): string {
-		const [_year, month, day] = dateStr.split("-");
+		const [year, month, day] = dateStr.split("-");
 		const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-		return `${months[parseInt(month!, 10) - 1]} ${parseInt(day!, 10)}`;
+		const currentYear = String(new Date().getFullYear());
+		const base = `${months[parseInt(month!, 10) - 1]} ${parseInt(day!, 10)}`;
+		return year === currentYear ? base : `${base}, ${year}`;
 	}
 
 	private renderBarChart(container: HTMLElement, records: DailyRecord[]) {
