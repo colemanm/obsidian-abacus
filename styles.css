@@ -66,6 +66,12 @@
 	transition: width 0.3s ease;
 }
 
+.abacus-streak-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-top: 4px;
+}
+
 .abacus-progress-complete {
 	background: var(--color-green);
 }

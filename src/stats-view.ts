@@ -64,6 +64,10 @@ export class AbacusStatsView extends ItemView {
 			if (pct >= 100) {
 				barInner.addClass("abacus-progress-complete");
 			}
+
+			const streak = this.plugin.getStreak();
+			const streakText = streak > 0 ? `${streak}-day streak` : "No active streak";
+			progressEl.createEl("div", { cls: "abacus-streak-label", text: streakText });
 		}
 
 		// History table
