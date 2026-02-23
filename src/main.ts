@@ -253,7 +253,7 @@ export default class AbacusPlugin extends Plugin {
 			const pct = Math.min(100, Math.round((net / goal) * 100));
 			const streak = this.getStreak();
 			const icon = net >= goal ? "\u2713" : "\u270f\ufe0f";
-			let text = `${icon} ${net} / ${goal} words (${pct}%)`;
+			let text = `${icon} ${net} total words | ${net} / ${goal} (${pct}%)`;
 			if (streak > 0) {
 				text += ` | ${streak}d streak`;
 			}
