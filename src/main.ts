@@ -3,6 +3,7 @@ import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS
 import { AbacusSettingTab } from "./settings";
 import { AbacusStatsView, VIEW_TYPE_ABACUS_STATS } from "./stats-view";
 import { EditorView, ViewUpdate } from "@codemirror/view";
+import { Text } from "@codemirror/state";
 
 function getToday(): string {
 	return localDateStr(new Date());
@@ -12,6 +13,17 @@ function countWords(text: string): number {
 	const trimmed = text.trim();
 	if (trimmed.length === 0) return 0;
 	return trimmed.split(/\s+/).length;
+}
+
+/** Count words in a range of lines in a CodeMirror Doc, without allocating the full document string. */
+function countWordsInLineRange(doc: Text, fromPos: number, toPos: number): number {
+	const firstLine = doc.lineAt(fromPos).number;
+	const lastLine = doc.lineAt(toPos).number;
+	let count = 0;
+	for (let i = firstLine; i <= lastLine; i++) {
+		count += countWords(doc.line(i).text);
+	}
+	return count;
 }
 
 function daysAgo(days: number): string {
@@ -85,9 +97,13 @@ export default class AbacusPlugin extends Plugin {
 	}
 
 	handleDocChange(update: ViewUpdate) {
-		const wordsBefore = countWords(update.startState.doc.toString());
-		const wordsAfter = countWords(update.state.doc.toString());
-		const delta = wordsAfter - wordsBefore;
+		let delta = 0;
+
+		update.changes.iterChanges((fromA, toA, fromB, toB) => {
+			const oldWords = countWordsInLineRange(update.startState.doc, fromA, Math.max(fromA, toA - 1));
+			const newWords = countWordsInLineRange(update.state.doc, fromB, Math.max(fromB, toB - 1));
+			delta += newWords - oldWords;
+		});
 
 		if (delta === 0) return;
 
