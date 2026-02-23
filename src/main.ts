@@ -197,6 +197,31 @@ export default class AbacusPlugin extends Plugin {
 		this.saveAbacusData();
 	}
 
+	/**
+	 * Count consecutive days (before today) where the daily goal was met.
+	 */
+	getStreak(): number {
+		const goal = this.data.settings.dailyGoal;
+		if (goal <= 0) return 0;
+
+		const records = this.getDailyRecords();
+		let streak = 0;
+		let day = 1; // start from yesterday
+
+		while (true) {
+			const date = daysAgo(day);
+			const record = records[date];
+			if (record && record.netWords >= goal) {
+				streak++;
+				day++;
+			} else {
+				break;
+			}
+		}
+
+		return streak;
+	}
+
 	updateStatusBar() {
 		const record = this.getTodayRecord();
 		const goal = this.data.settings.dailyGoal;
@@ -204,8 +229,13 @@ export default class AbacusPlugin extends Plugin {
 
 		if (goal > 0) {
 			const pct = Math.min(100, Math.round((net / goal) * 100));
+			const streak = this.getStreak();
 			const icon = net >= goal ? "\u2713" : "\u270f\ufe0f";
-			this.statusBarEl.setText(`${icon} ${net} / ${goal} words (${pct}%)`);
+			let text = `${icon} ${net} / ${goal} words (${pct}%)`;
+			if (streak > 0) {
+				text += ` | ${streak}d streak`;
+			}
+			this.statusBarEl.setText(text);
 		} else {
 			this.statusBarEl.setText(`\u270f\ufe0f ${net} words today`);
 		}
