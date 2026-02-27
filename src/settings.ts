@@ -49,13 +49,27 @@ export class AbacusSettingTab extends PluginSettingTab {
 					})
 			)
 			.addButton((button) =>
-				button.setButtonText("Compact now").onClick(() => {
-					const before = this.plugin.data.increments.length;
-					this.plugin.compact(localDateStr(new Date()));
-					const after = this.plugin.data.increments.length;
+				button.setButtonText("Compact now").onClick(async () => {
+					const before = this.plugin.myIncrementsCount;
+					await this.plugin.compact(localDateStr(new Date()));
+					const after = this.plugin.myIncrementsCount;
 					const compacted = before - after;
 					new Notice(`Abacus: compacted ${compacted} increment${compacted === 1 ? "" : "s"}`);
 				})
+			);
+
+		new Setting(containerEl)
+			.setName("Device name")
+			.setDesc("Optional friendly name for this device (stored locally, not synced).")
+			.addText((text) =>
+				text
+					.setPlaceholder("e.g. MacBook, iPad")
+					.setValue(this.plugin.getDeviceName())
+					.onChange(async (value) => {
+						await this.plugin.setDeviceName(value.trim());
+						// Update the name in the increment file
+						await this.plugin.saveAbacusData();
+					})
 			);
 
 		new Setting(containerEl)
@@ -63,12 +77,7 @@ export class AbacusSettingTab extends PluginSettingTab {
 			.setDesc("Clear today's word count back to zero.")
 			.addButton((button) =>
 				button.setButtonText("Reset").onClick(async () => {
-					const today = localDateStr(new Date());
-					this.plugin.data.increments = this.plugin.data.increments.filter((i) => i.date !== today);
-					delete this.plugin.data.compacted[today];
-					await this.plugin.saveAbacusData();
-					this.plugin.updateStatusBar();
-					this.plugin.refreshStatsView();
+					await this.plugin.resetToday();
 				})
 			);
 	}

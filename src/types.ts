@@ -19,9 +19,15 @@ export interface AbacusSettings {
 
 export interface AbacusData {
 	settings: AbacusSettings;
-	increments: Increment[];
 	// Compacted daily summaries for older data
 	compacted: Record<string, DailyRecord>;
+	migratedToPerDevice?: boolean;
+}
+
+export interface DeviceIncrementFile {
+	deviceId: string;
+	deviceName?: string;
+	increments: Increment[];
 }
 
 export const DEFAULT_SETTINGS: AbacusSettings = {
@@ -31,7 +37,6 @@ export const DEFAULT_SETTINGS: AbacusSettings = {
 
 export const DEFAULT_DATA: AbacusData = {
 	settings: { ...DEFAULT_SETTINGS },
-	increments: [],
 	compacted: {},
 };
 

@@ -2,9 +2,15 @@
 
 An Obsidian plugin that tracks your daily word count with goals, streaks, and historical stats.
 
-## Features
+- **See your progress as you write** — a live word count in the status bar shows today's net words, goal progress, and current streak
+- **Set daily goals and build streaks** — choose a daily word target and watch your streak grow as you hit it day after day
+- **Review your writing history** — a sidebar panel shows today's stats, weekly and monthly totals, a full history table, and a 30-day bar chart
+- **Works across devices** — write on your laptop, pick up on your iPad, and see combined totals everywhere. Each device tracks its own counts in a separate file, so nothing gets lost when Obsidian Sync runs
+- **Stays out of your way** — no configuration required to get started. Counts update in the background as you type with no manual logging
 
-### Real-time word tracking
+## How it works
+
+### Word tracking
 Abacus listens to editor changes as you type and computes the net words written per day (words added minus words deleted). Counts are tracked across all files in the vault. Changes are batched efficiently — individual keystrokes are accumulated in memory and flushed as a single entry every 2 seconds.
 
 ### Status bar
@@ -29,8 +35,12 @@ Set a target number of words per day (default: 500) in Settings > Abacus. The st
 ### Streak tracking
 Tracks consecutive days where you met your daily word goal. The streak counts backwards from yesterday — today is always in progress. Displayed in both the status bar and sidebar.
 
-### Sync-safe data model
-Data is stored as append-only increments, making it safe to sync between devices with Obsidian Sync. Older increments are automatically compacted into daily summaries after 30 days (configurable). A manual "Compact now" button is available in settings.
+### Multi-device support & Obsidian Sync
+Abacus stores each device's word counts in its own file, so devices never overwrite each other's data. Stats from all devices are merged automatically — write 200 words on your laptop and 300 on your phone, and the sidebar shows 500 for the day.
+
+Each device is identified automatically on first run. You can optionally give each device a friendly name in settings (e.g., "MacBook", "iPad") which is used in the filename for easy identification.
+
+Older data is automatically compacted into daily summaries after 30 days (configurable) to keep storage efficient. A manual "Compact now" button is available in settings.
 
 ## Commands
 
@@ -46,6 +56,7 @@ Data is stored as append-only increments, making it safe to sync between devices
 | **Daily word goal** | Target net words per day. Set to 0 to disable. | 500 |
 | **Compaction threshold** | Days of granular data to keep before auto-compacting | 30 |
 | **Compact now** | Manually compact all increments before today | — |
+| **Device name** | Friendly name for this device (stored locally, not synced) | — |
 | **Reset today** | Clear today's word count | — |
 
 ## Installation

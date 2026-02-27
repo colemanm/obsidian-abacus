@@ -1,5 +1,5 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
-import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS, localDateStr } from "./types";
+import { AbacusData, AbacusSettings, DailyRecord, DEFAULT_DATA, DEFAULT_SETTINGS, DeviceIncrementFile, Increment, localDateStr } from "./types";
 import { AbacusSettingTab } from "./settings";
 import { AbacusStatsView, VIEW_TYPE_ABACUS_STATS } from "./stats-view";
 import { EditorView, ViewUpdate } from "@codemirror/view";
@@ -39,10 +39,13 @@ export default class AbacusPlugin extends Plugin {
 	private refreshTimeout: ReturnType<typeof setTimeout> | null = null;
 	private pendingAdded = 0;
 	private pendingDeleted = 0;
+	private deviceId: string;
+	private myIncrements: Increment[] = [];
+	private allIncrements: Increment[] = [];
 
 	async onload() {
 		await this.loadAbacusData();
-		this.compact();
+		await this.compact();
 
 		this.registerView(VIEW_TYPE_ABACUS_STATS, (leaf) => new AbacusStatsView(leaf, this));
 
@@ -65,12 +68,7 @@ export default class AbacusPlugin extends Plugin {
 			id: "reset-today",
 			name: "Reset today's word count",
 			callback: async () => {
-				const today = getToday();
-				this.data.increments = this.data.increments.filter((i) => i.date !== today);
-				delete this.data.compacted[today];
-				await this.saveAbacusData();
-				this.updateStatusBar();
-				this.refreshStatsView();
+				await this.resetToday();
 			},
 		});
 
@@ -86,13 +84,18 @@ export default class AbacusPlugin extends Plugin {
 		this.registerInterval(
 			window.setInterval(() => this.updateStatusBar(), 60 * 1000)
 		);
+
+		// Periodically re-read all increment files to pick up synced data
+		this.registerInterval(
+			window.setInterval(() => this.refreshAllIncrements(), 5 * 60 * 1000)
+		);
 	}
 
 	onunload() {
 		this.flushPending();
 		if (this.saveTimeout) {
 			clearTimeout(this.saveTimeout);
-			this.saveAbacusData();
+			this.saveMyIncrements();
 		}
 		if (this.refreshTimeout) {
 			clearTimeout(this.refreshTimeout);
@@ -125,12 +128,15 @@ export default class AbacusPlugin extends Plugin {
 	private flushPending() {
 		if (this.pendingAdded === 0 && this.pendingDeleted === 0) return;
 
-		this.data.increments.push({
+		const inc: Increment = {
 			ts: Date.now(),
 			date: getToday(),
 			added: this.pendingAdded,
 			deleted: this.pendingDeleted,
-		});
+		};
+
+		this.myIncrements.push(inc);
+		this.allIncrements.push(inc);
 
 		this.pendingAdded = 0;
 		this.pendingDeleted = 0;
@@ -147,8 +153,8 @@ export default class AbacusPlugin extends Plugin {
 			records[date] = { ...record };
 		}
 
-		// Layer increments on top
-		for (const inc of this.data.increments) {
+		// Layer increments from all devices on top
+		for (const inc of this.allIncrements) {
 			const existing = records[inc.date];
 			if (existing) {
 				existing.wordsAdded += inc.added;
@@ -187,13 +193,12 @@ export default class AbacusPlugin extends Plugin {
 	}
 
 	/**
-	 * Compact increments before the cutoff date into daily summaries.
-	 * When called without arguments, uses the compactAfterDays threshold.
-	 * When called with a cutoff, compacts everything before that date.
+	 * Compact this device's increments before the cutoff date into daily summaries.
+	 * Only compacts own device data — other devices compact their own.
 	 */
-	compact(cutoff?: string) {
+	async compact(cutoff?: string) {
 		if (!cutoff) cutoff = daysAgo(this.data.settings.compactAfterDays);
-		const toCompact = this.data.increments.filter((i) => i.date < cutoff);
+		const toCompact = this.myIncrements.filter((i) => i.date < cutoff);
 
 		if (toCompact.length === 0) return;
 
@@ -214,9 +219,11 @@ export default class AbacusPlugin extends Plugin {
 			}
 		}
 
-		// Remove compacted increments
-		this.data.increments = this.data.increments.filter((i) => i.date >= cutoff!);
-		this.saveAbacusData();
+		// Remove compacted increments from own device
+		this.myIncrements = this.myIncrements.filter((i) => i.date >= cutoff!);
+		await this.saveAbacusData();
+		// Reload merged view
+		this.allIncrements = await this.readAllIncrements();
 	}
 
 	/**
@@ -293,12 +300,147 @@ export default class AbacusPlugin extends Plugin {
 		return this.data.settings;
 	}
 
+	get myIncrementsCount(): number {
+		return this.myIncrements.length;
+	}
+
+	// --- Device ID ---
+
+	private initDeviceId() {
+		const key = "abacus-device-id";
+		let id = window.localStorage.getItem(key);
+		if (!id) {
+			id = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
+			window.localStorage.setItem(key, id);
+		}
+		this.deviceId = id;
+	}
+
+	getDeviceName(): string {
+		return window.localStorage.getItem("abacus-device-name") ?? "";
+	}
+
+	async setDeviceName(name: string) {
+		const oldPath = this.incrementFilePath;
+		window.localStorage.setItem("abacus-device-name", name);
+		const newPath = this.incrementFilePath;
+		if (oldPath !== newPath) {
+			const adapter = this.app.vault.adapter;
+			try {
+				if (await adapter.exists(oldPath)) {
+					// Read, write to new path, remove old
+					const raw = await adapter.read(oldPath);
+					await adapter.write(newPath, raw);
+					await adapter.remove(oldPath);
+				}
+			} catch {
+				// If rename fails, the next save will write to the new path
+			}
+		}
+	}
+
+	// --- Per-device file I/O ---
+
+	private get pluginDir(): string {
+		return this.manifest.dir!;
+	}
+
+	private get incrementFileStem(): string {
+		const name = this.getDeviceName();
+		if (name) {
+			const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+			if (slug) return slug;
+		}
+		return this.deviceId;
+	}
+
+	private get incrementFilePath(): string {
+		return `${this.pluginDir}/increments-${this.incrementFileStem}.json`;
+	}
+
+	private async listIncrementFiles(): Promise<string[]> {
+		const adapter = this.app.vault.adapter;
+		const listing = await adapter.list(this.pluginDir);
+		return listing.files.filter((f) => /\/increments-.+\.json$/.test(f));
+	}
+
+	private async readIncrementFile(path: string): Promise<DeviceIncrementFile | null> {
+		const adapter = this.app.vault.adapter;
+		try {
+			const raw = await adapter.read(path);
+			return JSON.parse(raw) as DeviceIncrementFile;
+		} catch {
+			return null;
+		}
+	}
+
+	private async writeMyIncrements() {
+		const adapter = this.app.vault.adapter;
+		const file: DeviceIncrementFile = {
+			deviceId: this.deviceId,
+			deviceName: this.getDeviceName() || undefined,
+			increments: this.myIncrements,
+		};
+		await adapter.write(this.incrementFilePath, JSON.stringify(file, null, "\t"));
+	}
+
+	/** Load this device's increment file, searching by path or by deviceId inside JSON. */
+	private async loadMyIncrementFile(): Promise<Increment[]> {
+		// Try the current path first (name-based or id-based)
+		const myFile = await this.readIncrementFile(this.incrementFilePath);
+		if (myFile) return myFile.increments;
+
+		// Fall back: scan all increment files for one matching our deviceId
+		// (handles case where device name was set/changed since the file was written)
+		const files = await this.listIncrementFiles();
+		for (const path of files) {
+			const file = await this.readIncrementFile(path);
+			if (file && file.deviceId === this.deviceId) {
+				// Rename to current expected path
+				const adapter = this.app.vault.adapter;
+				const newPath = this.incrementFilePath;
+				if (path !== newPath) {
+					await adapter.write(newPath, JSON.stringify(file, null, "\t"));
+					await adapter.remove(path);
+				}
+				return file.increments;
+			}
+		}
+
+		return [];
+	}
+
+	private async readAllIncrements(): Promise<Increment[]> {
+		const files = await this.listIncrementFiles();
+		const all: Increment[] = [];
+		const seenTs = new Set<number>();
+
+		for (const path of files) {
+			const file = await this.readIncrementFile(path);
+			if (!file) continue;
+			for (const inc of file.increments) {
+				// Deduplicate by timestamp to handle migration edge case
+				if (!seenTs.has(inc.ts)) {
+					seenTs.add(inc.ts);
+					all.push(inc);
+				}
+			}
+		}
+
+		return all;
+	}
+
+	// --- Load / Save ---
+
 	async loadAbacusData() {
 		const saved = await this.loadData();
 		this.data = Object.assign({}, DEFAULT_DATA, saved);
 		this.data.settings = Object.assign({}, DEFAULT_SETTINGS, this.data.settings);
-		if (!this.data.increments) this.data.increments = [];
 		if (!this.data.compacted) this.data.compacted = {};
+
+		this.initDeviceId();
 
 		// Migrate from old dailyRecords format
 		if (saved && "dailyRecords" in saved) {
@@ -310,10 +452,72 @@ export default class AbacusPlugin extends Plugin {
 					}
 				}
 			}
-			// Remove stale key and persist
 			delete (this.data as unknown as Record<string, unknown>)["dailyRecords"];
-			await this.saveAbacusData();
 		}
+
+		// Migrate increments from data.json to per-device file
+		if (saved && "increments" in saved && Array.isArray(saved.increments) && saved.increments.length > 0 && !this.data.migratedToPerDevice) {
+			this.myIncrements = saved.increments as Increment[];
+			this.data.migratedToPerDevice = true;
+			// Remove increments from shared data
+			delete (this.data as unknown as Record<string, unknown>)["increments"];
+			await this.writeMyIncrements();
+			await this.saveSharedData();
+		} else {
+			// Remove stale increments key if present
+			delete (this.data as unknown as Record<string, unknown>)["increments"];
+			if (!this.data.migratedToPerDevice) {
+				this.data.migratedToPerDevice = true;
+				await this.saveSharedData();
+			}
+			// Load this device's increment file
+			this.myIncrements = await this.loadMyIncrementFile();
+		}
+
+		// Load merged view from all devices
+		this.allIncrements = await this.readAllIncrements();
+	}
+
+	private async saveSharedData() {
+		await this.saveData(this.data);
+	}
+
+	private async saveMyIncrements() {
+		await this.writeMyIncrements();
+	}
+
+	async saveAbacusData() {
+		await this.saveSharedData();
+		await this.saveMyIncrements();
+	}
+
+	async resetToday() {
+		const today = getToday();
+		this.myIncrements = this.myIncrements.filter((i) => i.date !== today);
+		delete this.data.compacted[today];
+		await this.saveAbacusData();
+		this.allIncrements = await this.readAllIncrements();
+		this.updateStatusBar();
+		this.refreshStatsView();
+	}
+
+	/** Called by Obsidian when data.json is modified externally (e.g., by Sync). */
+	async onExternalSettingsChange() {
+		const saved = await this.loadData();
+		if (saved) {
+			this.data.settings = Object.assign({}, DEFAULT_SETTINGS, saved.settings);
+			this.data.compacted = saved.compacted ?? {};
+			this.data.migratedToPerDevice = saved.migratedToPerDevice;
+		}
+		this.allIncrements = await this.readAllIncrements();
+		this.updateStatusBar();
+		this.refreshStatsView();
+	}
+
+	private async refreshAllIncrements() {
+		this.allIncrements = await this.readAllIncrements();
+		this.updateStatusBar();
+		this.refreshStatsView();
 	}
 
 	private debounceRefreshStatsView() {
@@ -329,11 +533,7 @@ export default class AbacusPlugin extends Plugin {
 		this.saveTimeout = setTimeout(() => {
 			this.saveTimeout = null;
 			this.flushPending();
-			this.saveAbacusData();
+			this.saveMyIncrements();
 		}, 2000);
-	}
-
-	async saveAbacusData() {
-		await this.saveData(this.data);
 	}
 }
