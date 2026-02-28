@@ -69,9 +69,16 @@ Older data is automatically compacted into daily summaries after 30 days (config
 
 ### From source
 1. Clone this repository
-2. Run `npm install`
-3. Run `npm run build`
-4. Copy `main.js`, `styles.css`, and `manifest.json` to `VaultFolder/.obsidian/plugins/abacus/`
+2. `npm install && npm run build`
+3. Symlink the repo into your vault: `ln -s /path/to/obsidian-abacus VaultFolder/.obsidian/plugins/abacus`
+4. Enable the plugin in Settings > Community plugins
+
+### Updating
+```bash
+git pull
+npm run build
+```
+Then reload the plugin or restart Obsidian.
 
 ## Development
 
