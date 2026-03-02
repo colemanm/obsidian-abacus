@@ -1,6 +1,5 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import AbacusPlugin from "./main";
-import { localDateStr } from "./types";
 
 export class AbacusSettingTab extends PluginSettingTab {
 	plugin: AbacusPlugin;
@@ -34,24 +33,12 @@ export class AbacusSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Compaction threshold")
-			.setDesc("Days of granular increment data to keep before compacting into daily summaries.")
-			.addText((text) =>
-				text
-					.setPlaceholder("30")
-					.setValue(String(this.plugin.data.settings.compactAfterDays))
-					.onChange(async (value) => {
-						const num = parseInt(value, 10);
-						if (!isNaN(num) && num >= 1) {
-							this.plugin.data.settings.compactAfterDays = num;
-							await this.plugin.saveAbacusData();
-						}
-					})
-			)
+			.setName("Compact now")
+			.setDesc("Merge buffered increments into synced data immediately.")
 			.addButton((button) =>
 				button.setButtonText("Compact now").onClick(async () => {
 					const before = this.plugin.myIncrementsCount;
-					await this.plugin.compact(localDateStr(new Date()));
+					await this.plugin.compact();
 					const after = this.plugin.myIncrementsCount;
 					const compacted = before - after;
 					new Notice(`Abacus: compacted ${compacted} increment${compacted === 1 ? "" : "s"}`);
@@ -70,15 +57,6 @@ export class AbacusSettingTab extends PluginSettingTab {
 						// Update the name in the increment file
 						await this.plugin.saveAbacusData();
 					})
-			);
-
-		new Setting(containerEl)
-			.setName("Reset today's count")
-			.setDesc("Clear today's word count back to zero.")
-			.addButton((button) =>
-				button.setButtonText("Reset").onClick(async () => {
-					await this.plugin.resetToday();
-				})
 			);
 	}
 }

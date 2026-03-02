@@ -5,6 +5,11 @@ export interface Increment {
 	deleted: number;
 }
 
+export interface DeviceEntry {
+	wordsAdded: number;
+	wordsDeleted: number;
+}
+
 export interface DailyRecord {
 	date: string;     // YYYY-MM-DD
 	wordsAdded: number;
@@ -14,25 +19,25 @@ export interface DailyRecord {
 
 export interface AbacusSettings {
 	dailyGoal: number;
-	compactAfterDays: number;
 }
 
 export interface AbacusData {
 	settings: AbacusSettings;
-	// Compacted daily summaries for older data
-	compacted: Record<string, DailyRecord>;
-	migratedToPerDevice?: boolean;
+	// Compacted daily summaries keyed by date, then by deviceId
+	compacted: Record<string, Record<string, DeviceEntry>>;
 }
 
 export interface DeviceIncrementFile {
 	deviceId: string;
 	deviceName?: string;
 	increments: Increment[];
+	lastCompactedTs?: number;
 }
+
+export const COMPACT_INTERVAL_MS = 5 * 60 * 1000;
 
 export const DEFAULT_SETTINGS: AbacusSettings = {
 	dailyGoal: 500,
-	compactAfterDays: 30,
 };
 
 export const DEFAULT_DATA: AbacusData = {
