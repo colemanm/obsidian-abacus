@@ -195,10 +195,11 @@ export class AbacusStatsView extends ItemView {
 		const goal = this.plugin.data.settings.dailyGoal;
 
 		const chartWrapper = container.createDiv({ cls: "abacus-bar-chart" });
+		const barsRow = chartWrapper.createDiv({ cls: "abacus-bars-row" });
+		const labelsRow = chartWrapper.createDiv({ cls: "abacus-labels-row" });
 
 		for (const record of reversed) {
-			const col = chartWrapper.createDiv({ cls: "abacus-bar-col" });
-			const barArea = col.createDiv({ cls: "abacus-bar-area" });
+			const barArea = barsRow.createDiv({ cls: "abacus-bar-area" });
 			const bar = barArea.createDiv({ cls: "abacus-bar" });
 			const heightPct = Math.round((Math.abs(record.netWords) / maxVal) * 100);
 			bar.style.height = `${heightPct}%`;
@@ -211,15 +212,14 @@ export class AbacusStatsView extends ItemView {
 
 			bar.setAttribute("aria-label", `${record.date}: ${record.netWords} words`);
 
-			const label = col.createDiv({ cls: "abacus-bar-label" });
-			const day = record.date.slice(8);
-			label.setText(day);
+			const label = labelsRow.createDiv({ cls: "abacus-bar-label" });
+			label.setText(record.date.slice(8));
 		}
 
 		// Goal line
 		if (goal > 0 && goal <= maxVal) {
 			const goalPct = Math.round((goal / maxVal) * 100);
-			const goalLine = chartWrapper.createDiv({ cls: "abacus-goal-line" });
+			const goalLine = barsRow.createDiv({ cls: "abacus-goal-line" });
 			goalLine.style.bottom = `${goalPct}%`;
 		}
 	}
