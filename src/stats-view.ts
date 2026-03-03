@@ -96,7 +96,7 @@ export class AbacusStatsView extends ItemView {
 		}
 
 		const tbody = table.createEl("tbody");
-		for (const record of sorted) {
+		for (const record of sorted.slice(0, 7)) {
 			const row = tbody.createEl("tr");
 			row.createEl("td", { text: this.formatDate(record.date) });
 			row.createEl("td", { text: String(record.netWords), cls: record.netWords >= 0 ? "abacus-positive" : "abacus-negative" });
