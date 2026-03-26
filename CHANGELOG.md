@@ -5,6 +5,15 @@ All notable changes to Abacus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-03-25
+
+### Changed
+- Redesigned today's stats: "Words Added" is now the primary metric with added/deleted as secondary
+- Responsive sidebar layout using CSS container queries
+- History table hides added/deleted columns at narrow widths
+- Period summary cards stack vertically when sidebar is very narrow
+- Bar chart day labels replaced with instant hover tooltips
+
 ## [1.1.0] - 2026-03-09
 
 ### Added

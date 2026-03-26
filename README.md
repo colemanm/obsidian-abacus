@@ -22,7 +22,7 @@ Displays today's progress in the bottom status bar:
 
 ### Sidebar stats view
 Open the stats panel from the ribbon icon (bar chart) or the command palette ("Abacus: View daily word stats") to see:
-- **Today's summary** — net words, words added, and words deleted
+- **Today's summary** — words added (primary), with added and deleted counts
 - **Goal progress bar** — visual indicator of daily goal completion
 - **Streak counter** — consecutive days meeting the daily goal
 - **Weekly & monthly totals** — net words and daily average for the current week and month

@@ -1,7 +1,7 @@
 {
 	"id": "abacus",
 	"name": "Abacus",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Track your daily word count with goals and historical stats.",
 	"author": "Coleman McCormick",
