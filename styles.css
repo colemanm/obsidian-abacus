@@ -1,5 +1,6 @@
 .abacus-stats {
 	padding: 16px;
+	container-type: inline-size;
 }
 
 .abacus-today-summary {
@@ -19,6 +20,14 @@
 	display: flex;
 	gap: 12px;
 	margin-bottom: 12px;
+	align-items: center;
+}
+
+.abacus-stat-secondary-col {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1;
 }
 
 .abacus-stat-card {
@@ -30,7 +39,7 @@
 }
 
 .abacus-stat-value {
-	font-size: 1.5em;
+	font-size: 2em;
 	font-weight: 700;
 	color: var(--text-normal);
 }
@@ -39,6 +48,20 @@
 	font-size: 0.8em;
 	color: var(--text-muted);
 	margin-top: 4px;
+}
+
+.abacus-stat-secondary {
+	padding: 8px 12px;
+	flex: 1;
+}
+
+.abacus-stat-secondary .abacus-stat-value {
+	font-size: 1em;
+	color: var(--text-muted);
+}
+
+.abacus-stat-secondary .abacus-stat-label {
+	font-size: 0.7em;
 }
 
 /* Progress bar */
@@ -276,4 +299,22 @@
 	height: 1px;
 	border-top: 1px dashed var(--text-muted);
 	pointer-events: none;
+}
+
+/* Narrow sidebar responsive layout */
+@container (max-width: 280px) {
+	.abacus-table td:nth-child(3),
+	.abacus-table td:nth-child(4) {
+		display: none;
+	}
+
+	.abacus-table td {
+		padding: 8px 6px;
+	}
+}
+
+@container (max-width: 200px) {
+	.abacus-period-row {
+		flex-direction: column;
+	}
 }

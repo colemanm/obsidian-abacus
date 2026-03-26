@@ -50,9 +50,10 @@ export class AbacusStatsView extends ItemView {
 		summaryEl.createEl("h3", { text: "Today" });
 
 		const statsGrid = summaryEl.createDiv({ cls: "abacus-today-grid" });
-		this.createStatCard(statsGrid, "Net Words", String(net));
-		this.createStatCard(statsGrid, "Added", `+${added}`);
-		this.createStatCard(statsGrid, "Deleted", `-${deleted}`);
+		this.createStatCard(statsGrid, "Words Added", String(net), true);
+		const secondaryCol = statsGrid.createDiv({ cls: "abacus-stat-secondary-col" });
+		this.createStatCard(secondaryCol, "Added", `+${added}`);
+		this.createStatCard(secondaryCol, "Deleted", `-${deleted}`);
 
 		if (goal > 0) {
 			const pct = Math.min(100, Math.round((net / goal) * 100));
@@ -169,8 +170,8 @@ export class AbacusStatsView extends ItemView {
 		return this.plugin.getDailyRecords();
 	}
 
-	private createStatCard(parent: HTMLElement, label: string, value: string) {
-		const card = parent.createDiv({ cls: "abacus-stat-card" });
+	private createStatCard(parent: HTMLElement, label: string, value: string, primary = false) {
+		const card = parent.createDiv({ cls: `abacus-stat-card${primary ? "" : " abacus-stat-secondary"}` });
 		card.createDiv({ cls: "abacus-stat-value", text: value });
 		card.createDiv({ cls: "abacus-stat-label", text: label });
 	}
