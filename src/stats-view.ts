@@ -196,7 +196,6 @@ export class AbacusStatsView extends ItemView {
 
 		const chartWrapper = container.createDiv({ cls: "abacus-bar-chart" });
 		const barsRow = chartWrapper.createDiv({ cls: "abacus-bars-row" });
-		const labelsRow = chartWrapper.createDiv({ cls: "abacus-labels-row" });
 
 		for (const record of reversed) {
 			const barArea = barsRow.createDiv({ cls: "abacus-bar-area" });
@@ -210,10 +209,7 @@ export class AbacusStatsView extends ItemView {
 				bar.addClass("abacus-bar-goal-met");
 			}
 
-			bar.setAttribute("aria-label", `${record.date}: ${record.netWords} words`);
-
-			const label = labelsRow.createDiv({ cls: "abacus-bar-label" });
-			label.setText(record.date.slice(8));
+			barArea.setAttribute("data-tooltip", `${this.formatDate(record.date)}: ${record.netWords} words`);
 		}
 
 		// Goal line
