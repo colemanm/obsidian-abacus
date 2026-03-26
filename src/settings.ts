@@ -13,8 +13,6 @@ export class AbacusSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Abacus Settings" });
-
 		new Setting(containerEl)
 			.setName("Daily word goal")
 			.setDesc("Target number of net words per day. Set to 0 to disable goal tracking.")

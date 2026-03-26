@@ -388,6 +388,9 @@ export default class AbacusPlugin extends Plugin {
 		return `${this.pluginDir}/increments-${this.incrementFileStem}.json`;
 	}
 
+	// Adapter API is used intentionally: increment files live in the plugin
+	// directory (.obsidian/plugins/abacus/), not in the vault, so the Vault
+	// API (which operates on vault content) is not appropriate here.
 	private async readIncrementFile(path: string): Promise<DeviceIncrementFile | null> {
 		const adapter = this.app.vault.adapter;
 		try {
