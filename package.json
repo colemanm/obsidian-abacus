@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-abacus",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Track your daily word count with goals and historical stats for Obsidian.",
 	"main": "main.js",
 	"type": "module",
