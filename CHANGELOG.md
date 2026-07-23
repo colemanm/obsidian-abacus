@@ -5,6 +5,11 @@ All notable changes to Abacus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- Prevent external settings merges from repeatedly rewriting unchanged data and blocking Obsidian Sync
+
 ## [1.2.1] - 2026-04-20
 
 ### Changed

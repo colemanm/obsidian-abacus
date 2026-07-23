@@ -32,6 +32,21 @@ function daysAgo(days: number): string {
 	return localDateStr(d);
 }
 
+function stableStringify(value: unknown): string | undefined {
+	return JSON.stringify(value, (_key, nestedValue: unknown) => {
+		if (nestedValue === null || typeof nestedValue !== "object" || Array.isArray(nestedValue)) {
+			return nestedValue;
+		}
+
+		const record = nestedValue as Record<string, unknown>;
+		const sorted: Record<string, unknown> = {};
+		for (const key of Object.keys(record).sort()) {
+			sorted[key] = record[key];
+		}
+		return sorted;
+	});
+}
+
 export default class AbacusPlugin extends Plugin {
 	data: AbacusData;
 	statusBarEl: HTMLElement;
@@ -561,7 +576,9 @@ export default class AbacusPlugin extends Plugin {
 		}
 
 		// Persist merged state so it survives a restart before the next compact
-		await this.saveSharedData();
+		if (stableStringify(this.data) !== stableStringify(saved)) {
+			await this.saveSharedData();
+		}
 
 		this.updateStatusBar();
 		this.refreshStatsView();
