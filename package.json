@@ -1,12 +1,13 @@
 {
 	"name": "obsidian-abacus",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"description": "Track your daily word count with goals and historical stats for Obsidian.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"test": "node --test test/*.test.mjs",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint ."
 	},
