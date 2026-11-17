@@ -20,6 +20,13 @@ Displays today's progress in the bottom status bar:
 - Goal complete: `✓ 512 / 500 words (100%) | 3d streak`
 - Without a goal: `✏️ 347 words today`
 
+### Writing timer
+Choose **Abacus: Start writing session** in the command palette, click **Start timer** in the desktop status bar, or select **Start** in the sidebar’s **Writing timer** panel. Settings → Abacus lets you choose the length and number of rounds. The defaults are 25 minutes and one round.
+
+Use **Pause** or **Resume** in the sidebar. Open **More timer actions** (⋯) to finish a round early or end the session. The desktop status bar countdown also opens the timer controls. After each round, click **Start round** when you're ready for the next one. The timer resumes from its saved deadline if you reopen Obsidian. Each round counts up to its configured length.
+
+Today and History show **Focused time** in whole minutes. A positive total under a minute appears as **<1 min**. Partial rounds accumulate at full precision, including on days with no word changes. Pauses and time between rounds are excluded. A round that spans midnight contributes time to each local date.
+
 ### Sidebar stats view
 Open the stats panel from the ribbon icon (bar chart) or the command palette ("Abacus: View daily word stats") to see:
 - **Today's summary** — words added (primary), with added and deleted counts

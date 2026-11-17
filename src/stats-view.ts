@@ -1,11 +1,16 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import AbacusPlugin from "./main";
 import { DailyRecord, localDateStr } from "./types";
+import { renderTimerPanel } from "./timer-controls";
+import { formatFocusedTime } from "./writing-timer";
 
 export const VIEW_TYPE_ABACUS_STATS = "abacus-stats-view";
 
 export class AbacusStatsView extends ItemView {
 	plugin: AbacusPlugin;
+	private countdown: HTMLElement | null = null;
+	private shownDate: string;
+	private focusValues: { element: HTMLElement; date: string; savedMs: number }[] = [];
 
 	constructor(leaf: WorkspaceLeaf, plugin: AbacusPlugin) {
 		super(leaf);
@@ -17,7 +22,7 @@ export class AbacusStatsView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Abacus Stats";
+		return "Abacus stats";
 	}
 
 	getIcon(): string {
@@ -41,6 +46,14 @@ export class AbacusStatsView extends ItemView {
 
 		// Today summary
 		const today = localDateStr(new Date());
+		this.shownDate = today;
+		this.focusValues = [];
+		// Show a running timer in History even on a day with no word changes.
+		if (this.plugin.timer.session?.phase === "running") {
+			for (const date of [today, ...Object.keys(this.plugin.timer.liveTime(Date.now()))]) {
+				records[date] ??= { date, netWords: 0, wordsAdded: 0, wordsDeleted: 0, focusedMs: 0 };
+			}
+		}
 		const todayRecord = records[today];
 		const net = todayRecord?.netWords ?? 0;
 		const added = todayRecord?.wordsAdded ?? 0;
@@ -71,6 +84,11 @@ export class AbacusStatsView extends ItemView {
 			progressEl.createEl("div", { cls: "abacus-streak-label", text: streakText });
 		}
 
+		const focus = summaryEl.createDiv({ cls: "abacus-focus" });
+		focus.createSpan({ text: "Focused time" });
+		this.focusValues.push({ element: focus.createEl("strong"), date: today, savedMs: todayRecord?.focusedMs ?? 0 });
+		this.countdown = renderTimerPanel(wrapper, this.plugin);
+
 		// Weekly & monthly summaries
 		this.renderPeriodSummaries(wrapper, records);
 
@@ -81,7 +99,8 @@ export class AbacusStatsView extends ItemView {
 		const sorted = this.getSortedRecords(records);
 
 		if (sorted.length === 0) {
-			historyEl.createEl("p", { text: "No word count data yet. Start typing!", cls: "abacus-empty" });
+			this.updateTimerDisplay(Date.now());
+			historyEl.createEl("p", { text: "Start writing or time a session to see your history.", cls: "abacus-empty" });
 			return;
 		}
 
@@ -95,6 +114,7 @@ export class AbacusStatsView extends ItemView {
 		if (goal > 0) {
 			headerRow.createEl("th", { text: "Goal %" });
 		}
+		headerRow.createEl("th", { text: "Focused time" });
 
 		const tbody = table.createEl("tbody");
 		for (const record of sorted.slice(0, 7)) {
@@ -108,13 +128,29 @@ export class AbacusStatsView extends ItemView {
 				const cell = row.createEl("td", { text: `${pct}%` });
 				if (pct >= 100) cell.addClass("abacus-goal-met");
 			}
+			const focusCell = row.createEl("td", { cls: "abacus-history-focus", attr: { title: "Focused time" } });
+			this.focusValues.push({ element: focusCell, date: record.date, savedMs: record.focusedMs });
 		}
+		this.updateTimerDisplay(Date.now());
 
 		// Bar chart visualization
 		if (sorted.length > 1) {
 			const chartEl = wrapper.createDiv({ cls: "abacus-chart" });
-			chartEl.createEl("h3", { text: "Last 30 Days" });
+			chartEl.createEl("h3", { text: "Last 30 days" });
 			this.renderBarChart(chartEl, sorted.slice(0, 30));
+		}
+	}
+
+	updateTimerDisplay(now: number) {
+		if (localDateStr(new Date(now)) !== this.shownDate) {
+			this.refresh();
+			return;
+		}
+		this.countdown?.setText(this.plugin.timer.countdown(now));
+		const running = this.plugin.timer.liveTime(now);
+		for (const { element, date, savedMs } of this.focusValues) {
+			const value = formatFocusedTime(savedMs + (running[date] ?? 0));
+			if (element.textContent !== value) element.setText(value);
 		}
 	}
 

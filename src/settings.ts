@@ -31,6 +31,16 @@ export class AbacusSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Writing round length")
+			.setDesc("Minutes per round in a new writing session (1–1440).")
+			.addText((text) => this.timerSetting(text.inputEl, "sessionMinutes", 1440));
+
+		new Setting(containerEl)
+			.setName("Writing rounds")
+			.setDesc("Rounds per session (1–99). Start each round when you're ready.")
+			.addText((text) => this.timerSetting(text.inputEl, "sessionRounds", 99));
+
+		new Setting(containerEl)
 			.setName("Compact now")
 			.setDesc("Merge buffered increments into synced data immediately.")
 			.addButton((button) =>
@@ -48,7 +58,7 @@ export class AbacusSettingTab extends PluginSettingTab {
 			.setDesc("Optional friendly name for this device (stored locally, not synced).")
 			.addText((text) =>
 				text
-					.setPlaceholder("e.g. MacBook, iPad")
+					.setPlaceholder("Writing laptop")
 					.setValue(this.plugin.getDeviceName())
 					.onChange(async (value) => {
 						await this.plugin.setDeviceName(value.trim());
@@ -56,5 +66,23 @@ export class AbacusSettingTab extends PluginSettingTab {
 						await this.plugin.saveAbacusData();
 					})
 			);
+	}
+
+	private timerSetting(input: HTMLInputElement, key: "sessionMinutes" | "sessionRounds", max: number) {
+		input.type = "number";
+		input.min = "1";
+		input.max = String(max);
+		input.step = "1";
+		input.value = String(this.plugin.settings[key]);
+		input.onchange = () => {
+			const value = input.valueAsNumber;
+			if (Number.isInteger(value) && value >= 1 && value <= max) {
+				this.plugin.settings[key] = value;
+				void this.plugin.saveAbacusData();
+			} else {
+				new Notice(`Enter a whole number between 1 and ${max}.`);
+				input.value = String(this.plugin.settings[key]);
+			}
+		};
 	}
 }
