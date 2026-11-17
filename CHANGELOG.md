@@ -5,6 +5,13 @@ All notable changes to Abacus will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-17
+
+### Added
+- Writing timer with configurable round length and count, a status bar countdown, and manual starts between rounds.
+- A dedicated sidebar timer panel with a countdown, round number, and pause and resume controls.
+- Focused time in Today and History, displayed in minutes and including partial rounds and sessions with no word changes.
+
 ## [1.2.2] - 2026-07-23
 
 ### Fixed

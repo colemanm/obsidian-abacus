@@ -4,7 +4,7 @@
 }
 
 .abacus-today-summary {
-	margin-bottom: 24px;
+	margin-bottom: 12px;
 }
 
 .abacus-today-summary h3 {
@@ -21,6 +21,101 @@
 	gap: 12px;
 	margin-bottom: 12px;
 	align-items: center;
+}
+
+.abacus-focus {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 12px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.abacus-focus strong {
+	color: var(--text-normal);
+	font-weight: var(--font-semibold);
+	font-variant-numeric: tabular-nums;
+}
+
+.abacus-timer-panel {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 20px;
+	padding: 10px 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+}
+
+.abacus-timer-heading {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+}
+
+.abacus-timer-heading svg,
+.abacus-timer-action svg {
+	display: block;
+	width: 14px;
+	height: 14px;
+}
+
+.abacus-timer-heading svg {
+	color: var(--text-muted);
+}
+
+.abacus-timer-panel[data-phase="running"] .abacus-timer-heading svg {
+	color: var(--text-accent);
+}
+
+.abacus-timer-menu,
+.abacus-timer-action {
+	justify-self: end;
+}
+
+.abacus-timer-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.abacus-countdown {
+	font-size: 1.75em;
+	font-weight: var(--font-semibold);
+	line-height: 1.15;
+	letter-spacing: -0.03em;
+	font-variant-numeric: tabular-nums;
+}
+
+.abacus-timer-round {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.abacus-timer-button,
+.abacus-history-focus {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.status-bar .abacus-timer-button {
+	height: auto;
+	padding: 0 4px;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	color: inherit;
+	background: transparent;
+	box-shadow: none;
 }
 
 .abacus-stat-secondary-col {

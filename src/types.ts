@@ -1,13 +1,19 @@
+import type { WritingSession } from "./writing-timer";
+
 export interface Increment {
 	ts: number;       // Date.now() timestamp
 	date: string;     // YYYY-MM-DD
 	added: number;
 	deleted: number;
+	focusedMs?: number;
 }
 
 export interface DeviceEntry {
 	wordsAdded: number;
 	wordsDeleted: number;
+	focusedMs?: number;
+	// Highest increment already included for this device and date.
+	throughTs?: number;
 }
 
 export interface DailyRecord {
@@ -15,10 +21,13 @@ export interface DailyRecord {
 	wordsAdded: number;
 	wordsDeleted: number;
 	netWords: number;
+	focusedMs: number;
 }
 
 export interface AbacusSettings {
 	dailyGoal: number;
+	sessionMinutes: number;
+	sessionRounds: number;
 }
 
 export interface AbacusData {
@@ -32,12 +41,15 @@ export interface DeviceIncrementFile {
 	deviceName?: string;
 	increments: Increment[];
 	lastCompactedTs?: number;
+	writingSession?: WritingSession;
 }
 
 export const COMPACT_INTERVAL_MS = 5 * 60 * 1000;
 
 export const DEFAULT_SETTINGS: AbacusSettings = {
 	dailyGoal: 500,
+	sessionMinutes: 25,
+	sessionRounds: 1,
 };
 
 export const DEFAULT_DATA: AbacusData = {
